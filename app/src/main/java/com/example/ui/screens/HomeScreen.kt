@@ -5,7 +5,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +23,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.ui.theme.DarkCardGradient
+import com.example.ui.theme.DarkGradientBlack
+import com.example.ui.theme.LightCardGradient
+import com.example.ui.theme.LightGradientWhite
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CameraAlt
@@ -313,6 +319,7 @@ fun HomeScreen(
                         onClick = { onOpenDocument(doc) },
                         onOpen = { onOpenDocument(doc) },
                         onShare = { documentsViewModel.shareDocument(doc, context) },
+                        onShareWhatsApp = { documentsViewModel.shareDocumentToWhatsApp(doc, context) },
                         onRename = { docToRename = doc },
                         onDuplicate = { documentsViewModel.duplicateDocument(doc) },
                         onCompress = { documentsViewModel.compressDocument(doc, CompressionQuality.STANDARD, context) },
@@ -358,11 +365,14 @@ fun QuickActionPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
         modifier = modifier
+            .background(if (isDark) DarkGradientBlack else LightGradientWhite, RoundedCornerShape(16.dp))
+            .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .testTag("quick_action_${label.lowercase().replace(" ", "_")}")
     ) {

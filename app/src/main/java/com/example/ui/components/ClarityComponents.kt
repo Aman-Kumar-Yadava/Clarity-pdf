@@ -2,7 +2,9 @@ package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import com.example.R
+import com.example.ui.theme.DarkCardGradient
+import com.example.ui.theme.DarkGradientBlack
+import com.example.ui.theme.LightCardGradient
+import com.example.ui.theme.LightGradientWhite
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -93,6 +101,7 @@ fun DocumentItemCard(
     onLongClick: () -> Unit = {},
     onOpen: () -> Unit,
     onShare: () -> Unit,
+    onShareWhatsApp: () -> Unit = {},
     onRename: () -> Unit,
     onDuplicate: () -> Unit,
     onCompress: () -> Unit,
@@ -100,19 +109,23 @@ fun DocumentItemCard(
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
 
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (!isSelected) {
+                    Modifier
+                        .background(if (isDark) DarkCardGradient else LightCardGradient, RoundedCornerShape(20.dp))
+                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                } else Modifier
+            )
             .clickable {
                 if (isSelectionMode) onLongClick() else onClick()
             }
@@ -241,39 +254,79 @@ fun DocumentItemCard(
                 )
             }
 
-            // Quick Overflow Actions
-            Box {
+            // Quick Actions: WhatsApp direct shortcut, System Share, and Options
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier.testTag("document_menu_button_${document.id}")
+                    onClick = onShareWhatsApp,
+                    modifier = Modifier.testTag("document_whatsapp_button_${document.id}")
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "Options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        painter = painterResource(R.drawable.ic_whatsapp),
+                        contentDescription = "Share to WhatsApp",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier.testTag("document_share_button_${document.id}")
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Open") },
-                        leadingIcon = { Icon(Icons.Filled.OpenInNew, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onOpen()
-                        }
+                    Icon(
+                        imageVector = Icons.Filled.Share,
+                        contentDescription = "Share",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
-                    DropdownMenuItem(
-                        text = { Text("Share") },
-                        leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onShare()
-                        }
-                    )
+                }
+
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.testTag("document_menu_button_${document.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "Options",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Open") },
+                            leadingIcon = { Icon(Icons.Filled.OpenInNew, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onOpen()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share to WhatsApp") },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_whatsapp),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onShareWhatsApp()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onShare()
+                            }
+                        )
                     DropdownMenuItem(
                         text = { Text("Rename") },
                         leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
@@ -311,6 +364,7 @@ fun DocumentItemCard(
         }
     }
 }
+}
 
 @Composable
 fun StorageOverviewCard(
@@ -318,12 +372,14 @@ fun StorageOverviewCard(
     totalBytes: Long,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        ),
-        modifier = modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(if (isDark) DarkCardGradient else LightCardGradient, RoundedCornerShape(24.dp))
+            .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(24.dp))
     ) {
         Row(
             modifier = Modifier

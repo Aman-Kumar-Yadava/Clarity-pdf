@@ -23,6 +23,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -102,6 +105,31 @@ fun DocumentsScreen(
                 },
                 actions = {
                     if (isSelectionMode) {
+                        IconButton(
+                            onClick = {
+                                val firstDoc = documents.firstOrNull { it.id in selectedDocIds }
+                                firstDoc?.let { documentsViewModel.shareDocumentToWhatsApp(it, context) }
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_whatsapp),
+                                contentDescription = "Share on WhatsApp",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                val firstDoc = documents.firstOrNull { it.id in selectedDocIds }
+                                firstDoc?.let { documentsViewModel.shareDocument(it, context) }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Filled.Share,
+                                contentDescription = "Share",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                         IconButton(onClick = { showBatchDeleteConfirm = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete selected", tint = MaterialTheme.colorScheme.error)
                         }
@@ -234,6 +262,7 @@ fun DocumentsScreen(
                             onLongClick = { documentsViewModel.toggleDocSelection(doc.id) },
                             onOpen = { onOpenDocument(doc) },
                             onShare = { documentsViewModel.shareDocument(doc, context) },
+                            onShareWhatsApp = { documentsViewModel.shareDocumentToWhatsApp(doc, context) },
                             onRename = { docToRename = doc },
                             onDuplicate = { documentsViewModel.duplicateDocument(doc) },
                             onCompress = { documentsViewModel.compressDocument(doc, CompressionQuality.STANDARD, context) },

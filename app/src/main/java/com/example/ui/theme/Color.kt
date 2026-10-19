@@ -56,3 +56,18 @@ val ClarityCyan = Color(0xFF0EA5E9)
 val ClarityEmerald = Color(0xFF10B981)
 val ClarityAmber = Color(0xFFF59E0B)
 val ClarityRose = Color(0xFFF43F5E)
+
+// Distinctive element gradients to make UI components stand out
+val LightGradientWhite = androidx.compose.ui.graphics.Brush.verticalGradient(
+    listOf(Color(0xFFFFFFFF), Color(0xFFF1F5F9))
+)
+val LightCardGradient = androidx.compose.ui.graphics.Brush.linearGradient(
+    listOf(Color(0xFFFFFFFF), Color(0xFFF8FAFC), Color(0xFFF1F5F9))
+)
+
+val DarkGradientBlack = androidx.compose.ui.graphics.Brush.verticalGradient(
+    listOf(Color(0xFF1E293B), Color(0xFF0F172A))
+)
+val DarkCardGradient = androidx.compose.ui.graphics.Brush.linearGradient(
+    listOf(Color(0xFF1E293B), Color(0xFF131D2E), Color(0xFF0B1120))
+)

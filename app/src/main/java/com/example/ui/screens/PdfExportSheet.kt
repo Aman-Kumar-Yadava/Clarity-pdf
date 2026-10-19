@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
@@ -77,6 +79,7 @@ fun PdfExportSheet(
     ) -> Unit,
     onOpenGenerated: (DocumentEntity) -> Unit,
     onShareGenerated: (DocumentEntity) -> Unit,
+    onShareWhatsApp: (DocumentEntity) -> Unit = {},
     onDone: () -> Unit
 ) {
     val defaultTitle = remember {
@@ -361,7 +364,27 @@ fun PdfExportSheet(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Button(
+                            onClick = { onShareWhatsApp(doc) },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("export_whatsapp_share_button")
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_whatsapp),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Share via WhatsApp", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Button(
                             onClick = onDone,

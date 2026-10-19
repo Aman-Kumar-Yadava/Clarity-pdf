@@ -14,8 +14,16 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +44,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
@@ -56,6 +65,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,11 +74,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -76,6 +89,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.example.ui.theme.DarkGradientBlack
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -89,6 +105,8 @@ fun CameraScannerScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -174,6 +192,12 @@ fun CameraScannerScreen(
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
     var camera: Camera? by remember { mutableStateOf(null) }
     var isShutterPressed by remember { mutableStateOf(false) }
+
+    // Batch capture feedback animations
+    val flashLightAlpha = remember { Animatable(0f) }
+    val counterPulseScale = remember { Animatable(1f) }
+    var showCaptureFeedback by remember { mutableStateOf(false) }
+    var feedbackCapturedNumber by remember { mutableIntStateOf(1) }
 
     val shutterScale by animateFloatAsState(
         targetValue = if (isShutterPressed) 0.85f else 1.0f,
@@ -362,15 +386,28 @@ fun CameraScannerScreen(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = Color.Black.copy(alpha = 0.7f)
+                        color = Color.Black.copy(alpha = 0.75f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
+                        modifier = Modifier.scale(counterPulseScale.value)
                     ) {
-                        Text(
-                            text = "$pageCount ${if (pageCount == 1) "page captured" else "pages captured"}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF38BDF8),
-                            fontWeight = FontWeight.SemiBold,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                        )
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF10B981))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "$pageCount ${if (pageCount == 1) "page captured" else "pages captured"}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFF38BDF8),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Button(
@@ -444,6 +481,33 @@ fun CameraScannerScreen(
                                 object : ImageCapture.OnImageSavedCallback {
                                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                                         isShutterPressed = false
+                                        val newPageNum = pageCount + 1
+                                        feedbackCapturedNumber = newPageNum
+                                        showCaptureFeedback = true
+
+                                        // Light pulse feedback animations
+                                        scope.launch {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            flashLightAlpha.snapTo(0.7f)
+                                            flashLightAlpha.animateTo(
+                                                targetValue = 0f,
+                                                animationSpec = tween(durationMillis = 280, easing = LinearOutSlowInEasing)
+                                            )
+                                        }
+                                        scope.launch {
+                                            counterPulseScale.snapTo(1.35f)
+                                            counterPulseScale.animateTo(
+                                                targetValue = 1f,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
+                                            )
+                                        }
+                                        scope.launch {
+                                            delay(1400)
+                                            showCaptureFeedback = false
+                                        }
                                         onImageCaptured(photoFile.absolutePath)
                                     }
 
@@ -483,6 +547,59 @@ fun CameraScannerScreen(
                         imageVector = Icons.Filled.FlipCameraAndroid,
                         contentDescription = "Switch camera",
                         tint = Color.White
+                    )
+                }
+            }
+        }
+
+        // Camera shutter light flash animation overlay
+        if (flashLightAlpha.value > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White.copy(alpha = flashLightAlpha.value))
+            )
+        }
+
+        // Floating batch image captured and counted banner
+        AnimatedVisibility(
+            visible = showCaptureFeedback,
+            enter = fadeIn(tween(120)) + slideInVertically { 50 },
+            exit = fadeOut(tween(250)) + slideOutVertically { -30 },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 180.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF0F172A).copy(alpha = 0.92f),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF38BDF8)),
+                shadowElevation = 10.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Page $feedbackCapturedNumber captured & counted",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

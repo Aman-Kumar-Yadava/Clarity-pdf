@@ -254,6 +254,48 @@ class DocumentsViewModel(
         }
     }
 
+    fun shareDocumentToWhatsApp(document: DocumentEntity, context: Context) {
+        val file = File(document.filePath)
+        if (!file.exists()) {
+            Toast.makeText(context, "File does not exist on device", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, document.title)
+                setPackage("com.whatsapp")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/pdf"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, document.title)
+                    setPackage("com.whatsapp.w4b")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(context, "WhatsApp not installed. Opening sharesheet...", Toast.LENGTH_SHORT).show()
+                shareDocument(document, context)
+            }
+        }
+    }
+
     fun openDocumentExternally(document: DocumentEntity, context: Context) {
         val file = File(document.filePath)
         if (!file.exists()) {

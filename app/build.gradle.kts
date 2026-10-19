@@ -49,7 +49,12 @@ android {
       // AI Studio.
       signingConfig = signingConfigs.getByName("release")
     }
-    debug {}
+    debug {
+      val debugKey = file("${rootDir}/debug.keystore")
+      if (debugKey.exists()) {
+        signingConfig = signingConfigs.getByName("debugConfig")
+      }
+    }
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11

@@ -1,7 +1,5 @@
 package com.example
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -17,14 +15,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,18 +28,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.db.AppDatabase
-import com.example.data.model.DocumentEntity
 import com.example.data.repository.DocumentRepository
+import com.example.ui.navigation.Screen
 import com.example.ui.screens.CameraScannerScreen
 import com.example.ui.screens.CombinePdfScreen
 import com.example.ui.screens.CompressPdfScreen
@@ -57,17 +50,19 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.ClarityPdfTheme
 import com.example.viewmodel.DocumentsViewModel
 import com.example.viewmodel.ScanViewModel
-import java.io.File
 
-sealed interface Screen {
-    data object Home : Screen
-    data object Documents : Screen
-    data object Settings : Screen
-    data object Scanner : Screen
-    data object Editor : Screen
-    data class PdfView(val document: DocumentEntity) : Screen
-    data object Combine : Screen
-    data object Compress : Screen
+class ScanViewModelFactory(private val repository: DocumentRepository) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return ScanViewModel(repository) as T
+    }
+}
+
+class DocumentsViewModelFactory(private val repository: DocumentRepository) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return DocumentsViewModel(repository) as T
+    }
 }
 
 class MainActivity : ComponentActivity() {
@@ -80,32 +75,26 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val database = remember { AppDatabase.getInstance(context) }
                 val repository = remember { DocumentRepository(database.documentDao(), context) }
-                val scanViewModel = remember { ScanViewModel(repository) }
-                val documentsViewModel = remember { DocumentsViewModel(repository) }
 
-                val navBackStack = remember { mutableStateListOf<Screen>(Screen.Home) }
+                val scanViewModel: ScanViewModel = viewModel(
+                    factory = remember { ScanViewModelFactory(repository) }
+                )
+                val documentsViewModel: DocumentsViewModel = viewModel(
+                    factory = remember { DocumentsViewModelFactory(repository) }
+                )
+
+                val navBackStack by scanViewModel.navStack.collectAsStateWithLifecycle()
                 val currentScreen = navBackStack.lastOrNull() ?: Screen.Home
 
                 fun navigateTo(screen: Screen) {
-                    if (screen is Screen.Home || screen is Screen.Documents || screen is Screen.Settings) {
-                        navBackStack.clear()
-                        navBackStack.add(screen)
-                    } else {
-                        navBackStack.add(screen)
-                    }
+                    scanViewModel.navigateTo(screen)
                 }
 
                 fun navigateBack() {
-                    if (navBackStack.size > 1) {
-                        navBackStack.removeAt(navBackStack.lastIndex)
-                    } else if (currentScreen != Screen.Home) {
-                        navBackStack.clear()
-                        navBackStack.add(Screen.Home)
-                    }
+                    scanViewModel.navigateBack()
                 }
 
-                val showBottomNav = currentScreen is Screen.Home ||
-                        currentScreen is Screen.Documents
+                val showBottomNav = currentScreen is Screen.Home || currentScreen is Screen.Documents
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -232,16 +221,16 @@ class MainActivity : ComponentActivity() {
                                         onBack = { navigateBack() },
                                         onAddFromCamera = { navigateTo(Screen.Scanner) },
                                         onOpenGeneratedDoc = { doc ->
-                                            navBackStack.clear()
-                                            navBackStack.add(Screen.Home)
-                                            navBackStack.add(Screen.PdfView(doc))
+                                            scanViewModel.setNavStack(listOf(Screen.Home, Screen.PdfView(doc)))
                                         },
                                         onShareGeneratedDoc = { doc ->
                                             documentsViewModel.shareDocument(doc, context)
                                         },
+                                        onShareWhatsAppDoc = { doc ->
+                                            documentsViewModel.shareDocumentToWhatsApp(doc, context)
+                                        },
                                         onDoneNavHome = {
-                                            navBackStack.clear()
-                                            navBackStack.add(Screen.Home)
+                                            scanViewModel.setNavStack(listOf(Screen.Home))
                                         }
                                     )
                                 }
@@ -252,6 +241,7 @@ class MainActivity : ComponentActivity() {
                                         document = screen.document,
                                         onBack = { navigateBack() },
                                         onShare = { documentsViewModel.shareDocument(screen.document, context) },
+                                        onShareWhatsApp = { documentsViewModel.shareDocumentToWhatsApp(screen.document, context) },
                                         onOpenExternal = { documentsViewModel.openDocumentExternally(screen.document, context) }
                                     )
                                 }

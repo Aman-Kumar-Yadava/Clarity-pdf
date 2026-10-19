@@ -2,41 +2,51 @@ package com.example.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -44,23 +54,29 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.data.model.DocumentEntity
 import com.example.engine.PdfGenerator
 import com.example.ui.components.formatDate
@@ -73,18 +89,59 @@ fun PdfViewScreen(
     document: DocumentEntity,
     onBack: () -> Unit,
     onShare: () -> Unit,
+    onShareWhatsApp: () -> Unit,
     onOpenExternal: () -> Unit
 ) {
     val context = LocalContext.current
     var pages by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var currentPageIndex by remember { mutableIntStateOf(0) }
-    var showInfoSheet by remember { mutableStateOf(false) }
+    var showInfoSheet by rememberSaveable { mutableStateOf(false) }
 
-    // Zoom and pan state
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
+    // Immersive toggle: tap screen to toggle header & bottom bar, and auto-hide on scroll down
+    var showControls by rememberSaveable { mutableStateOf(true) }
+
+    // Continuous vertical list state
+    val listState = rememberLazyListState()
+
+    // Scroll-direction detection to intelligently hide/show controls
+    var previousIndex by remember { mutableIntStateOf(0) }
+    var previousOffset by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (currentIndex, currentOffset) ->
+                val isScrollingDown = if (currentIndex != previousIndex) {
+                    currentIndex > previousIndex
+                } else {
+                    currentOffset > previousOffset + 12
+                }
+
+                val isScrollingUp = if (currentIndex != previousIndex) {
+                    currentIndex < previousIndex
+                } else {
+                    currentOffset < previousOffset - 12
+                }
+
+                if (isScrollingDown && showControls && (currentIndex > 0 || currentOffset > 40)) {
+                    showControls = false
+                } else if (isScrollingUp && !showControls) {
+                    showControls = true
+                }
+
+                previousIndex = currentIndex
+                previousOffset = currentOffset
+            }
+    }
+
+    // Current page indicator based on vertical scroll
+    val currentPageNumber by remember {
+        derivedStateOf {
+            if (pages.isEmpty()) 1 else (listState.firstVisibleItemIndex + 1).coerceAtMost(pages.size)
+        }
+    }
+
+    // Zoom state
+    var scale by rememberSaveable { mutableFloatStateOf(1f) }
 
     LaunchedEffect(document.filePath) {
         isLoading = true
@@ -95,211 +152,220 @@ fun PdfViewScreen(
         isLoading = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = document.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                        if (pages.isNotEmpty()) {
-                            Text(
-                                text = "Page ${currentPageIndex + 1} of ${pages.size}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1E293B)) // Deep slate paper-viewing background
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        showControls = !showControls
                     }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("pdf_view_back_button")
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showInfoSheet = true }) {
-                        Icon(Icons.Filled.Info, contentDescription = "Document details")
-                    }
-                    IconButton(onClick = onShare) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share PDF")
-                    }
-                    IconButton(onClick = onOpenExternal) {
-                        Icon(Icons.Filled.OpenInNew, contentDescription = "Open in external app")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
                 )
-            )
-        },
-        bottomBar = {
-            if (pages.isNotEmpty()) {
-                Surface(
-                    tonalElevation = 3.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Column(
+            }
+    ) {
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Rendering document pages...", color = Color.White)
+                }
+            }
+        } else if (pages.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Unable to render PDF preview.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+        } else {
+            // Vertical Continuous Scroll View
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(scaleX = scale, scaleY = scale)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { showControls = !showControls },
+                            onDoubleTap = {
+                                scale = if (scale > 1f) 1f else 1.75f
+                            }
+                        )
+                    },
+                contentPadding = PaddingValues(
+                    top = if (showControls) 80.dp else 24.dp,
+                    bottom = if (showControls) 90.dp else 24.dp,
+                    start = 12.dp,
+                    end = 12.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                itemsIndexed(pages) { index, bmp ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        shadowElevation = 6.dp,
+                        color = Color.White,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                    ) {
-                        // Navigation controls & zoom
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    if (currentPageIndex > 0) {
-                                        currentPageIndex--
-                                        scale = 1f
-                                        offsetX = 0f
-                                        offsetY = 0f
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { showControls = !showControls },
+                                    onDoubleTap = {
+                                        scale = if (scale > 1f) 1f else 1.75f
                                     }
-                                },
-                                enabled = currentPageIndex > 0
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous page")
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = {
-                                    scale = (scale - 0.25f).coerceAtLeast(0.75f)
-                                }) {
-                                    Icon(Icons.Filled.ZoomOut, contentDescription = "Zoom out")
-                                }
-                                Text(
-                                    text = "${(scale * 100).toInt()}%",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(horizontal = 6.dp)
                                 )
-                                IconButton(onClick = {
-                                    scale = (scale + 0.25f).coerceAtMost(3.0f)
-                                }) {
-                                    Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom in")
-                                }
                             }
-
-                            IconButton(
-                                onClick = {
-                                    if (currentPageIndex < pages.size - 1) {
-                                        currentPageIndex++
-                                        scale = 1f
-                                        offsetX = 0f
-                                        offsetY = 0f
-                                    }
-                                },
-                                enabled = currentPageIndex < pages.size - 1
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next page")
-                            }
-                        }
-
-                        // Page thumbnails filmstrip
-                        if (pages.size > 1) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .testTag("pdf_page_vertical_$index")
+                    ) {
+                        Column {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = "Page ${index + 1}",
+                                contentScale = ContentScale.FillWidth,
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                itemsIndexed(pages) { idx, pageBmp ->
-                                    val isCurrent = idx == currentPageIndex
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp, 60.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(
-                                                if (isCurrent) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                            )
-                                            .padding(if (isCurrent) 2.dp else 0.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .clickable {
-                                                currentPageIndex = idx
-                                                scale = 1f
-                                                offsetX = 0f
-                                                offsetY = 0f
-                                            }
-                                    ) {
-                                        Image(
-                                            bitmap = pageBmp.asImageBitmap(),
-                                            contentDescription = "Page ${idx + 1}",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-                                }
-                            }
+                            )
                         }
                     }
                 }
             }
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-            contentAlignment = Alignment.Center
+
+        // Top App Bar (Intelligently hides and shows)
+        AnimatedVisibility(
+            visible = showControls,
+            enter = slideInVertically { -it } + fadeIn(),
+            exit = slideOutVertically { -it } + fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            if (isLoading) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Rendering PDF pages...", style = MaterialTheme.typography.bodyMedium)
-                }
-            } else if (pages.isEmpty()) {
-                Text(
-                    text = "Unable to preview PDF on this device.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                val currentBitmap = pages.getOrNull(currentPageIndex)
-                if (currentBitmap != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    scale = (scale * zoom).coerceIn(0.8f, 3.5f)
-                                    if (scale > 1f) {
-                                        offsetX += pan.x
-                                        offsetY += pan.y
-                                    } else {
-                                        offsetX = 0f
-                                        offsetY = 0f
-                                    }
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            shadowElevation = 4.dp,
-                            modifier = Modifier
-                                .graphicsLayer(
-                                    scaleX = scale,
-                                    scaleY = scale,
-                                    translationX = offsetX,
-                                    translationY = offsetY
-                                )
-                                .padding(16.dp)
-                        ) {
-                            Image(
-                                bitmap = currentBitmap.asImageBitmap(),
-                                contentDescription = "Rendered page ${currentPageIndex + 1}",
-                                contentScale = ContentScale.Fit
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = document.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
+                            if (pages.isNotEmpty()) {
+                                Text(
+                                    text = "Page $currentPageNumber of ${pages.size}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.testTag("pdf_view_back_button")
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        // Direct WhatsApp Share Shortcut
+                        IconButton(
+                            onClick = onShareWhatsApp,
+                            modifier = Modifier.testTag("pdf_view_whatsapp_button")
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_whatsapp),
+                                contentDescription = "Share to WhatsApp",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        // System Share
+                        IconButton(
+                            onClick = onShare,
+                            modifier = Modifier.testTag("pdf_view_share_button")
+                        ) {
+                            Icon(Icons.Filled.Share, contentDescription = "Share PDF")
+                        }
+                        // Open External
+                        IconButton(onClick = onOpenExternal) {
+                            Icon(Icons.Filled.OpenInNew, contentDescription = "Open in external app")
+                        }
+                        // Details
+                        IconButton(onClick = { showInfoSheet = true }) {
+                            Icon(Icons.Filled.Info, contentDescription = "Document details")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.statusBarsPadding()
+                )
+            }
+        }
+
+        // Bottom Menu & Controls (Intelligently hides and shows)
+        AnimatedVisibility(
+            visible = showControls,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 4.dp,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Page indicator pill
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = "Page $currentPageNumber / ${pages.size}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                    }
+
+                    // Zoom Controls
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = { scale = (scale - 0.25f).coerceAtLeast(0.75f) },
+                            enabled = scale > 0.75f
+                        ) {
+                            Icon(Icons.Filled.ZoomOut, contentDescription = "Zoom out")
+                        }
+
+                        Text(
+                            text = "${(scale * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 6.dp)
+                        )
+
+                        IconButton(
+                            onClick = { scale = (scale + 0.25f).coerceAtMost(2.5f) },
+                            enabled = scale < 2.5f
+                        ) {
+                            Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom in")
                         }
                     }
                 }
@@ -335,6 +401,60 @@ fun PdfViewScreen(
                 DetailRow("Category", document.category)
                 DetailRow("Created", formatDate(document.createdAt))
                 DetailRow("File Location", document.filePath)
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Button(
+                    onClick = {
+                        showInfoSheet = false
+                        onShareWhatsApp()
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_whatsapp),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Share to WhatsApp", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            showInfoSheet = false
+                            onShare()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Share")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            showInfoSheet = false
+                            onOpenExternal()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Open In...")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
             }

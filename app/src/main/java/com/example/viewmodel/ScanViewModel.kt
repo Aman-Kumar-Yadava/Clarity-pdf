@@ -37,10 +37,16 @@ class ScanViewModel(
     private val repository: DocumentRepository
 ) : ViewModel() {
 
-    private val _pages = MutableStateFlow<List<ScanPage>>(emptyList())
+    companion object {
+        private var cachedPages: List<ScanPage> = emptyList()
+        private var cachedNavStack: List<com.example.ui.navigation.Screen> = listOf(com.example.ui.navigation.Screen.Home)
+        private var cachedSelectedIndex: Int = 0
+    }
+
+    private val _pages = MutableStateFlow<List<ScanPage>>(cachedPages)
     val pages: StateFlow<List<ScanPage>> = _pages.asStateFlow()
 
-    private val _selectedPageIndex = MutableStateFlow(0)
+    private val _selectedPageIndex = MutableStateFlow(cachedSelectedIndex)
     val selectedPageIndex: StateFlow<Int> = _selectedPageIndex.asStateFlow()
 
     private val _generationState = MutableStateFlow<GenerationUiState>(GenerationUiState.Idle)
@@ -49,10 +55,19 @@ class ScanViewModel(
     private val _isProcessingThumbnails = MutableStateFlow(false)
     val isProcessingThumbnails: StateFlow<Boolean> = _isProcessingThumbnails.asStateFlow()
 
+    private val _navStack = MutableStateFlow<List<com.example.ui.navigation.Screen>>(cachedNavStack)
+    val navStack: StateFlow<List<com.example.ui.navigation.Screen>> = _navStack.asStateFlow()
+
     fun selectPage(index: Int) {
         if (index in _pages.value.indices) {
             _selectedPageIndex.value = index
+            cachedSelectedIndex = index
         }
+    }
+
+    private fun setPages(list: List<ScanPage>) {
+        _pages.value = list
+        cachedPages = list
     }
 
     /**
@@ -81,9 +96,10 @@ class ScanViewModel(
                 }
             }
 
-            _pages.value = _pages.value + newPages
+            setPages(_pages.value + newPages)
             if (_selectedPageIndex.value >= _pages.value.size) {
                 _selectedPageIndex.value = 0
+                cachedSelectedIndex = 0
             }
             _isProcessingThumbnails.value = false
         }
@@ -94,8 +110,9 @@ class ScanViewModel(
      */
     fun addCapturedImage(filePath: String) {
         val newPage = ScanPage(originalImagePath = filePath)
-        _pages.value = _pages.value + newPage
+        setPages(_pages.value + newPage)
         _selectedPageIndex.value = _pages.value.lastIndex
+        cachedSelectedIndex = _pages.value.lastIndex
     }
 
     fun removePage(pageId: String) {
@@ -103,8 +120,9 @@ class ScanViewModel(
         val index = currentList.indexOfFirst { it.id == pageId }
         if (index != -1) {
             currentList.removeAt(index)
-            _pages.value = currentList
+            setPages(currentList)
             _selectedPageIndex.value = _selectedPageIndex.value.coerceIn(0, maxOf(0, currentList.size - 1))
+            cachedSelectedIndex = _selectedPageIndex.value
         }
     }
 
@@ -118,8 +136,9 @@ class ScanViewModel(
                 processedImagePath = null
             )
             currentList.add(index + 1, duplicate)
-            _pages.value = currentList
+            setPages(currentList)
             _selectedPageIndex.value = index + 1
+            cachedSelectedIndex = index + 1
         }
     }
 
@@ -128,8 +147,30 @@ class ScanViewModel(
         val currentList = _pages.value.toMutableList()
         val item = currentList.removeAt(fromIndex)
         currentList.add(toIndex, item)
-        _pages.value = currentList
+        setPages(currentList)
         _selectedPageIndex.value = toIndex
+        cachedSelectedIndex = toIndex
+    }
+
+    fun reversePageOrder() {
+        val currentList = _pages.value.reversed()
+        if (currentList.isEmpty()) return
+        val oldIndex = _selectedPageIndex.value
+        setPages(currentList)
+        val newIndex = (currentList.size - 1 - oldIndex).coerceIn(0, currentList.size - 1)
+        _selectedPageIndex.value = newIndex
+        cachedSelectedIndex = newIndex
+    }
+
+    fun setPageOrder(newOrder: List<ScanPage>) {
+        if (newOrder.isEmpty()) return
+        val selectedPageId = _pages.value.getOrNull(_selectedPageIndex.value)?.id
+        setPages(newOrder)
+        val newIndex = if (selectedPageId != null) {
+            newOrder.indexOfFirst { it.id == selectedPageId }.takeIf { it != -1 } ?: 0
+        } else 0
+        _selectedPageIndex.value = newIndex
+        cachedSelectedIndex = newIndex
     }
 
     fun rotateCurrentPage(context: Context, clockwise: Boolean = true) {
@@ -145,7 +186,7 @@ class ScanViewModel(
     fun setEnhancementMode(context: Context, mode: EnhancementMode, applyToAll: Boolean = false) {
         if (applyToAll) {
             val updated = _pages.value.map { it.copy(enhancementMode = mode, processedImagePath = null) }
-            _pages.value = updated
+            setPages(updated)
             refreshCurrentPreview(context)
         } else {
             val index = _selectedPageIndex.value
@@ -203,14 +244,14 @@ class ScanViewModel(
     private fun updatePageAt(index: Int, page: ScanPage, context: Context) {
         val currentList = _pages.value.toMutableList()
         currentList[index] = page
-        _pages.value = currentList
+        setPages(currentList)
         viewModelScope.launch {
             try {
                 val procPath = DocumentEnhancer.processPage(context, page, isThumbnail = false)
                 val refreshedList = _pages.value.toMutableList()
                 if (index in refreshedList.indices) {
                     refreshedList[index] = page.copy(processedImagePath = procPath)
-                    _pages.value = refreshedList
+                    setPages(refreshedList)
                 }
             } catch (_: Exception) {}
         }
@@ -224,8 +265,10 @@ class ScanViewModel(
                     val page = _pages.value[index]
                     val procPath = DocumentEnhancer.processPage(context, page, isThumbnail = false)
                     val refreshedList = _pages.value.toMutableList()
-                    refreshedList[index] = page.copy(processedImagePath = procPath)
-                    _pages.value = refreshedList
+                    if (index in refreshedList.indices) {
+                        refreshedList[index] = page.copy(processedImagePath = procPath)
+                        setPages(refreshedList)
+                    }
                 } catch (_: Exception) {}
             }
         }
@@ -302,7 +345,40 @@ class ScanViewModel(
 
     fun clearSession() {
         _pages.value = emptyList()
+        cachedPages = emptyList()
         _selectedPageIndex.value = 0
+        cachedSelectedIndex = 0
         _generationState.value = GenerationUiState.Idle
+    }
+
+    fun navigateTo(screen: com.example.ui.navigation.Screen) {
+        val newStack = if (screen is com.example.ui.navigation.Screen.Home ||
+            screen is com.example.ui.navigation.Screen.Documents ||
+            screen is com.example.ui.navigation.Screen.Settings
+        ) {
+            listOf(screen)
+        } else {
+            _navStack.value + screen
+        }
+        _navStack.value = newStack
+        cachedNavStack = newStack
+    }
+
+    fun navigateBack() {
+        val current = _navStack.value
+        val newStack = if (current.size > 1) {
+            current.dropLast(1)
+        } else if (current.lastOrNull() != com.example.ui.navigation.Screen.Home) {
+            listOf(com.example.ui.navigation.Screen.Home)
+        } else {
+            current
+        }
+        _navStack.value = newStack
+        cachedNavStack = newStack
+    }
+
+    fun setNavStack(screens: List<com.example.ui.navigation.Screen>) {
+        _navStack.value = screens
+        cachedNavStack = screens
     }
 }
