@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Document Card Body -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M32,24 L64,24 L76,36 L76,82 C76,85.3 73.3,88 70,88 L32,88 C28.7,88 26,85.3 26,82 L26,30 C26,26.7 28.7,24 32,24 Z" />
+    <!-- Document Fold -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M64,24 L76,36 L64,36 Z" />
+    <!-- Document Lines -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M34,44 h28 v3 h-28 z M34,52 h34 v3 h-34 z M34,60 h22 v3 h-22 z" />
+    <!-- Scanner Frame Corners -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M22,30 h5 v-5 h10 v-4 h-15 z M86,30 h-5 v-5 h-10 v-4 h15 z M22,78 h5 v5 h10 v4 h-15 z M86,78 h-5 v5 h-10 v4 h15 z" />
+    <!-- Glowing Laser Scan Line -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M20,53 h68 v4 h-68 z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M22,54 h64 v2 h-64 z" />
+</vector>
