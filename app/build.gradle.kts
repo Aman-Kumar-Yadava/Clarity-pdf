@@ -49,11 +49,7 @@ android {
       // AI Studio.
       signingConfig = signingConfigs.getByName("release")
     }
-    debug {
-      // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
-      // AI Studio.
-      signingConfig = signingConfigs.getByName("debugConfig")
-    }
+    debug {}
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
