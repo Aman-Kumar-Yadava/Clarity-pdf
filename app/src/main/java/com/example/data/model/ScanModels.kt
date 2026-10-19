@@ -23,10 +23,10 @@ enum class PdfOrientation(val displayName: String) {
     AUTO("Auto Detect")
 }
 
-enum class CompressionQuality(val displayName: String, val targetDpi: Int, val jpegQuality: Int) {
-    STANDARD("Standard (Smallest)", 150, 70),
-    HIGH("High (Recommended)", 200, 85),
-    MAXIMUM("Maximum (Print Quality)", 300, 95)
+enum class CompressionQuality(val displayName: String, val maxDimension: Int, val jpegQuality: Int) {
+    STANDARD("Standard (Smallest · ~150KB/page)", 1280, 65),
+    HIGH("High (Recommended · ~300KB/page)", 1600, 80),
+    MAXIMUM("Maximum (Print Quality · ~500KB/page)", 2200, 90)
 }
 
 data class ScanPage(
@@ -34,7 +34,7 @@ data class ScanPage(
     val originalImagePath: String,
     val processedImagePath: String? = null,
     val rotationDegrees: Int = 0,
-    val enhancementMode: EnhancementMode = EnhancementMode.DOCUMENT,
+    val enhancementMode: EnhancementMode = EnhancementMode.ORIGINAL,
     val brightness: Float = 0f, // -100f to +100f
     val contrast: Float = 1f,   // 0.5f to 2.0f
     val cropLeft: Float = 0f,

@@ -105,8 +105,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val showBottomNav = currentScreen is Screen.Home ||
-                        currentScreen is Screen.Documents ||
-                        currentScreen is Screen.Settings
+                        currentScreen is Screen.Documents
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -140,18 +139,6 @@ class MainActivity : ComponentActivity() {
                                     },
                                     label = { Text("Documents") },
                                     modifier = Modifier.testTag("nav_item_documents")
-                                )
-                                NavigationBarItem(
-                                    selected = currentScreen is Screen.Settings,
-                                    onClick = { navigateTo(Screen.Settings) },
-                                    icon = {
-                                        Icon(
-                                            if (currentScreen is Screen.Settings) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                            contentDescription = "Settings"
-                                        )
-                                    },
-                                    label = { Text("Settings") },
-                                    modifier = Modifier.testTag("nav_item_settings")
                                 )
                             }
                         }
@@ -206,10 +193,10 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 is Screen.Settings -> {
-                                    BackHandler { navigateTo(Screen.Home) }
+                                    BackHandler { navigateBack() }
                                     SettingsScreen(
                                         documentsViewModel = documentsViewModel,
-                                        onBack = { navigateTo(Screen.Home) }
+                                        onBack = { navigateBack() }
                                     )
                                 }
 

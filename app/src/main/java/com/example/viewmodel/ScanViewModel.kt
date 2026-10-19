@@ -187,7 +187,7 @@ class ScanViewModel(
             val page = _pages.value[index]
             val updated = page.copy(
                 rotationDegrees = 0,
-                enhancementMode = EnhancementMode.DOCUMENT,
+                enhancementMode = EnhancementMode.ORIGINAL,
                 brightness = 0f,
                 contrast = 1f,
                 cropLeft = 0f,

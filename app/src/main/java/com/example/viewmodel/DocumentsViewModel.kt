@@ -162,13 +162,19 @@ class DocumentsViewModel(
         }
     }
 
-    fun compressDocument(document: DocumentEntity, quality: CompressionQuality, context: Context) {
+    fun compressDocument(document: DocumentEntity, quality: CompressionQuality, context: Context, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _isProcessingAction.value = true
             try {
                 val srcFile = File(document.filePath)
                 val compressedFile = PdfGenerator.compressPdf(context, srcFile, quality)
                 val thumbPath = PdfGenerator.renderPdfThumbnail(context, compressedFile)
+                val oldSize = com.example.ui.components.formatFileSize(document.fileSizeBytes)
+                val newSize = com.example.ui.components.formatFileSize(compressedFile.length())
+                val pct = if (document.fileSizeBytes > 0) {
+                    ((document.fileSizeBytes - compressedFile.length()) * 100 / document.fileSizeBytes).toInt().coerceAtLeast(0)
+                } else 0
+
                 val newDoc = DocumentEntity(
                     title = "${document.title} (Optimized)",
                     filePath = compressedFile.absolutePath,
@@ -182,7 +188,8 @@ class DocumentsViewModel(
                 )
                 repository.insertDocument(newDoc)
                 refreshStorageStats()
-                Toast.makeText(context, "Document compressed successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Compressed: $oldSize → $newSize (-$pct%)", Toast.LENGTH_LONG).show()
+                onComplete()
             } catch (e: Exception) {
                 Toast.makeText(context, "Compression failed: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {

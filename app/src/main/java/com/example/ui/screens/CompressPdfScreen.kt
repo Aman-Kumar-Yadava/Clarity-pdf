@@ -87,8 +87,9 @@ fun CompressPdfScreen(
                 Button(
                     onClick = {
                         selectedDoc?.let { doc ->
-                            documentsViewModel.compressDocument(doc, compressionPreset, context)
-                            onBack()
+                            documentsViewModel.compressDocument(doc, compressionPreset, context) {
+                                onBack()
+                            }
                         }
                     },
                     enabled = selectedDoc != null && !isProcessing,
