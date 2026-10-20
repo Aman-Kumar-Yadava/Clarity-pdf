@@ -4,10 +4,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -366,13 +368,15 @@ fun QuickActionPill(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
+    val pillShape = RoundedCornerShape(16.dp)
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = pillShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
         modifier = modifier
-            .background(if (isDark) DarkGradientBlack else LightGradientWhite, RoundedCornerShape(16.dp))
-            .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+            .clip(pillShape)
+            .background(if (isDark) DarkGradientBlack else LightGradientWhite, pillShape)
             .clickable { onClick() }
             .testTag("quick_action_${label.lowercase().replace(" ", "_")}")
     ) {

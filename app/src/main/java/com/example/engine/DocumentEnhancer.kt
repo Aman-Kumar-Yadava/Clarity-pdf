@@ -90,7 +90,9 @@ object DocumentEnhancer {
         // 3. Save to temporary cache file
         val outputDir = File(context.cacheDir, "processed_pages").apply { mkdirs() }
         val prefix = if (isThumbnail) "thumb_" else "proc_"
-        val outputFile = File(outputDir, "${prefix}${page.id}.jpg")
+        // Clean up previous cache files for this page to keep cache clean
+        outputDir.listFiles { file -> file.name.startsWith("${prefix}${page.id}") }?.forEach { it.delete() }
+        val outputFile = File(outputDir, "${prefix}${page.id}_${System.currentTimeMillis()}.jpg")
         FileOutputStream(outputFile).use { out ->
             val quality = if (isThumbnail) 75 else 90
             enhancedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)
@@ -108,14 +110,19 @@ object DocumentEnhancer {
             bmp = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
         }
 
-        // Crop bounds check
-        val left = (page.cropLeft.coerceIn(0f, 0.9f) * bmp.width).toInt()
-        val top = (page.cropTop.coerceIn(0f, 0.9f) * bmp.height).toInt()
-        val right = (page.cropRight.coerceIn(0.1f, 1f) * bmp.width).toInt()
-        val bottom = (page.cropBottom.coerceIn(0.1f, 1f) * bmp.height).toInt()
+        // Exact crop bounds calculation with safe boundary clamping
+        val cropL = page.cropLeft.coerceIn(0f, 0.95f)
+        val cropT = page.cropTop.coerceIn(0f, 0.95f)
+        val cropR = page.cropRight.coerceIn(cropL + 0.05f, 1f)
+        val cropB = page.cropBottom.coerceIn(cropT + 0.05f, 1f)
 
-        val cropWidth = max(10, right - left)
-        val cropHeight = max(10, bottom - top)
+        val left = (cropL * bmp.width).toInt().coerceIn(0, bmp.width - 2)
+        val top = (cropT * bmp.height).toInt().coerceIn(0, bmp.height - 2)
+        val right = (cropR * bmp.width).toInt().coerceIn(left + 2, bmp.width)
+        val bottom = (cropB * bmp.height).toInt().coerceIn(top + 2, bmp.height)
+
+        val cropWidth = (right - left).coerceAtMost(bmp.width - left)
+        val cropHeight = (bottom - top).coerceAtMost(bmp.height - top)
 
         if (left > 0 || top > 0 || cropWidth < bmp.width || cropHeight < bmp.height) {
             val cropped = Bitmap.createBitmap(bmp, left, top, cropWidth, cropHeight)

@@ -1,8 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,20 +132,22 @@ fun SortPagesSheet(
                     val isCurrentSelected = index == selectedIndex
                     val imagePath = page.processedImagePath ?: page.originalImagePath
 
+                    val itemCardShape = RoundedCornerShape(14.dp)
                     Card(
-                        shape = RoundedCornerShape(14.dp),
+                        shape = itemCardShape,
                         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(
+                            width = if (isCurrentSelected) 2.dp else 1.dp,
+                            color = if (isCurrentSelected) MaterialTheme.colorScheme.primary
+                            else if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(itemCardShape)
                             .background(
                                 if (isDark) DarkCardGradient else LightCardGradient,
-                                RoundedCornerShape(14.dp)
-                            )
-                            .border(
-                                width = if (isCurrentSelected) 2.dp else 1.dp,
-                                color = if (isCurrentSelected) MaterialTheme.colorScheme.primary
-                                else if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                                shape = RoundedCornerShape(14.dp)
+                                itemCardShape
                             )
                     ) {
                         Row(

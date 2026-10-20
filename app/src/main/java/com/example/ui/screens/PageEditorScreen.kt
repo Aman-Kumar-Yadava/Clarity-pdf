@@ -5,11 +5,13 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -366,23 +368,20 @@ fun PageEditorScreen(
 
                 var dragAccumulator by remember { mutableFloatStateOf(0f) }
 
-                // Large Document Page Preview Card with Arrow Navigation & Swipe
+                val previewCardShape = RoundedCornerShape(20.dp)
                 Card(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = previewCardShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = if (isLandscape) 8.dp else 14.dp)
                         .fillMaxWidth()
                         .height(cardHeight)
+                        .clip(previewCardShape)
                         .background(
                             if (isDark) DarkCardGradient else LightCardGradient,
-                            RoundedCornerShape(20.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            RoundedCornerShape(20.dp)
+                            previewCardShape
                         )
                         .pointerInput(selectedIndex, pages.size) {
                             detectHorizontalDragGestures(
@@ -483,20 +482,19 @@ fun PageEditorScreen(
                 }
 
                 // Enhancement Filters Selector Row
+                val filterCardShape = RoundedCornerShape(18.dp)
                 Card(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = filterCardShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
+                        .clip(filterCardShape)
                         .background(
                             if (isDark) DarkGradientBlack else LightGradientWhite,
-                            RoundedCornerShape(18.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            RoundedCornerShape(18.dp)
+                            filterCardShape
                         )
                         .padding(14.dp)
                 ) {
@@ -548,20 +546,20 @@ fun PageEditorScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Page Actions Toolbar (Fixed Arrow Navigation & Quick Actions)
+                val toolbarShape = RoundedCornerShape(18.dp)
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = toolbarShape,
                     color = Color.Transparent,
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp,
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
+                        .clip(toolbarShape)
                         .background(
                             if (isDark) DarkGradientBlack else LightGradientWhite,
-                            RoundedCornerShape(18.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            RoundedCornerShape(18.dp)
+                            toolbarShape
                         )
                 ) {
                     Row(
@@ -690,20 +688,19 @@ fun PageEditorScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Live Image Preview Card
+                val livePreviewShape = RoundedCornerShape(16.dp)
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = livePreviewShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(220.dp)
+                        .clip(livePreviewShape)
                         .background(
                             if (isDark) DarkCardGradient else LightCardGradient,
-                            RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                            RoundedCornerShape(16.dp)
+                            livePreviewShape
                         )
                         .padding(6.dp)
                 ) {

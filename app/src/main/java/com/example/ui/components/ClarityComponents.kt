@@ -1,10 +1,12 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -111,19 +113,20 @@ fun DocumentItemCard(
     var showMenu by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
 
+    val cardShape = RoundedCornerShape(20.dp)
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = if (!isSelected) BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)) else null,
         modifier = modifier
             .fillMaxWidth()
+            .clip(cardShape)
             .then(
                 if (!isSelected) {
-                    Modifier
-                        .background(if (isDark) DarkCardGradient else LightCardGradient, RoundedCornerShape(20.dp))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                    Modifier.background(if (isDark) DarkCardGradient else LightCardGradient, cardShape)
                 } else Modifier
             )
             .clickable {
@@ -373,13 +376,16 @@ fun StorageOverviewCard(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
+    val cardShape = RoundedCornerShape(24.dp)
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
         modifier = modifier
             .fillMaxWidth()
-            .background(if (isDark) DarkCardGradient else LightCardGradient, RoundedCornerShape(24.dp))
-            .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), RoundedCornerShape(24.dp))
+            .clip(cardShape)
+            .background(if (isDark) DarkCardGradient else LightCardGradient, cardShape)
     ) {
         Row(
             modifier = Modifier
