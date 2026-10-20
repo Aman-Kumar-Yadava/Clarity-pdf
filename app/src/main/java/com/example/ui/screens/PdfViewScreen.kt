@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ZoomIn
@@ -41,6 +42,8 @@ import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,6 +99,7 @@ fun PdfViewScreen(
     var pages by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showInfoSheet by rememberSaveable { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
 
     // Immersive toggle: tap screen to toggle header & bottom bar, and auto-hide on scroll down
     var showControls by rememberSaveable { mutableStateOf(true) }
@@ -292,13 +296,32 @@ fun PdfViewScreen(
                         ) {
                             Icon(Icons.Filled.Share, contentDescription = "Share PDF")
                         }
-                        // Open External
-                        IconButton(onClick = onOpenExternal) {
-                            Icon(Icons.Filled.OpenInNew, contentDescription = "Open in external app")
-                        }
-                        // Details
-                        IconButton(onClick = { showInfoSheet = true }) {
-                            Icon(Icons.Filled.Info, contentDescription = "Document details")
+                        // More Options Dropdown
+                        Box {
+                            IconButton(onClick = { showOverflowMenu = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = showOverflowMenu,
+                                onDismissRequest = { showOverflowMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Open in external app") },
+                                    leadingIcon = { Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        onOpenExternal()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Document details") },
+                                    leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        showInfoSheet = true
+                                    }
+                                )
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

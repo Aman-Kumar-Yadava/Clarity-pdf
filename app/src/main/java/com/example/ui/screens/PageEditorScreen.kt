@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
@@ -364,7 +365,7 @@ fun PageEditorScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-                val cardHeight = if (isLandscape) 240.dp else 380.dp
+                val cardHeight = if (isLandscape) 200.dp else 320.dp
 
                 var dragAccumulator by remember { mutableFloatStateOf(0f) }
 
@@ -565,8 +566,9 @@ fun PageEditorScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                             .padding(horizontal = 8.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Previous page navigation
@@ -574,7 +576,8 @@ fun PageEditorScreen(
                             onClick = {
                                 if (selectedIndex > 0) viewModel.selectPage(selectedIndex - 1)
                             },
-                            enabled = selectedIndex > 0
+                            enabled = selectedIndex > 0,
+                            modifier = Modifier.testTag("action_prev_page")
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous page")
                         }
@@ -584,40 +587,59 @@ fun PageEditorScreen(
                             onClick = {
                                 if (selectedIndex < pages.size - 1) viewModel.selectPage(selectedIndex + 1)
                             },
-                            enabled = selectedIndex < pages.size - 1
+                            enabled = selectedIndex < pages.size - 1,
+                            modifier = Modifier.testTag("action_next_page")
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next page")
                         }
 
                         // Rotate CCW
-                        IconButton(onClick = { viewModel.rotateCurrentPage(context, clockwise = false) }) {
+                        IconButton(
+                            onClick = { viewModel.rotateCurrentPage(context, clockwise = false) },
+                            modifier = Modifier.testTag("action_rotate_ccw")
+                        ) {
                             Icon(Icons.Filled.RotateLeft, contentDescription = "Rotate CCW")
                         }
 
                         // Rotate CW
-                        IconButton(onClick = { viewModel.rotateCurrentPage(context, clockwise = true) }) {
+                        IconButton(
+                            onClick = { viewModel.rotateCurrentPage(context, clockwise = true) },
+                            modifier = Modifier.testTag("action_rotate_cw")
+                        ) {
                             Icon(Icons.Filled.RotateRight, contentDescription = "Rotate CW")
                         }
 
                         // Crop (Live Preview Dialog)
-                        IconButton(onClick = { showCropDialog = true }) {
+                        IconButton(
+                            onClick = { showCropDialog = true },
+                            modifier = Modifier.testTag("action_crop_page")
+                        ) {
                             Icon(Icons.Filled.Crop, contentDescription = "Crop page")
                         }
 
                         // Fine tune (Live Preview Sheet)
-                        IconButton(onClick = { showTuneSheet = true }) {
+                        IconButton(
+                            onClick = { showTuneSheet = true },
+                            modifier = Modifier.testTag("action_tune_lighting")
+                        ) {
                             Icon(Icons.Filled.Tune, contentDescription = "Fine-tune lighting")
                         }
 
                         // Reorder / Sort pages
-                        IconButton(onClick = { showSortSheet = true }) {
+                        IconButton(
+                            onClick = { showSortSheet = true },
+                            modifier = Modifier.testTag("action_sort_pages")
+                        ) {
                             Icon(Icons.Filled.SwapHoriz, contentDescription = "Sort pages")
                         }
 
                         // Duplicate page
-                        IconButton(onClick = {
-                            currentPage?.let { viewModel.duplicatePage(it.id) }
-                        }) {
+                        IconButton(
+                            onClick = {
+                                currentPage?.let { viewModel.duplicatePage(it.id) }
+                            },
+                            modifier = Modifier.testTag("action_duplicate_page")
+                        ) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = "Duplicate page")
                         }
 
@@ -625,7 +647,8 @@ fun PageEditorScreen(
                         IconButton(
                             onClick = {
                                 currentPage?.let { viewModel.removePage(it.id) }
-                            }
+                            },
+                            modifier = Modifier.testTag("action_delete_page")
                         ) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete page", tint = MaterialTheme.colorScheme.error)
                         }
