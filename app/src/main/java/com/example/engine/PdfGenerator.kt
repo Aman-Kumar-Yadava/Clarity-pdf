@@ -55,6 +55,24 @@ private class CountingOutputStream(private val target: OutputStream) : OutputStr
 
 object PdfGenerator {
 
+    fun getClarityPdfOutputDir(context: Context): File {
+        return try {
+            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+            val clarityDir = File(downloadsDir, "clarity_pdf")
+            if (!clarityDir.exists()) {
+                clarityDir.mkdirs()
+            }
+            if (clarityDir.exists() && clarityDir.canWrite()) {
+                clarityDir
+            } else {
+                val extDownloads = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                File(extDownloads, "clarity_pdf").apply { mkdirs() }
+            }
+        } catch (_: Exception) {
+            File(context.filesDir, "documents").apply { mkdirs() }
+        }
+    }
+
     /**
      * Generates a clean, ultra-compact multi-page PDF document.
      * Uses standard PDF 1.4 image XObjects with DCTDecode (JPEG stream),
@@ -69,7 +87,7 @@ object PdfGenerator {
         val totalPages = pages.size
         require(totalPages > 0) { "Cannot generate PDF with 0 pages" }
 
-        val docDir = File(context.filesDir, "documents").apply { mkdirs() }
+        val docDir = getClarityPdfOutputDir(context)
         val sanitizedTitle = config.title.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
         val outputFile = File(docDir, "${sanitizedTitle}_${System.currentTimeMillis()}.pdf")
 
@@ -236,7 +254,7 @@ object PdfGenerator {
         srcPdf: File,
         compressionLevel: CompressionQuality = CompressionQuality.STANDARD
     ): File = withContext(Dispatchers.IO) {
-        val docDir = File(context.filesDir, "documents").apply { mkdirs() }
+        val docDir = getClarityPdfOutputDir(context)
         val outputName = "${srcPdf.nameWithoutExtension}_compressed_${System.currentTimeMillis()}.pdf"
         val outputFile = File(docDir, outputName)
 
@@ -363,7 +381,7 @@ object PdfGenerator {
         outputTitle: String,
         onProgress: (current: Int, total: Int) -> Unit = { _, _ -> }
     ): File = withContext(Dispatchers.IO) {
-        val docDir = File(context.filesDir, "documents").apply { mkdirs() }
+        val docDir = getClarityPdfOutputDir(context)
         val sanitized = outputTitle.trim().replace(Regex("[\\\\/:*?\"<>|]"), "_")
         val outputFile = File(docDir, "${sanitized}_${System.currentTimeMillis()}.pdf")
 
@@ -510,7 +528,7 @@ object PdfGenerator {
                 return@withContext null
             }
             val page = renderer.openPage(0)
-            val width = 360
+            val width = 600
             val height = (width * (page.height.toFloat() / page.width.toFloat())).toInt()
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)

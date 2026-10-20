@@ -2,14 +2,12 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -76,79 +74,81 @@ fun CombinePdfScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (selectedDocs.size >= 2 && combinedTitle.isNotBlank()) {
+                        Button(
+                            onClick = {
+                                documentsViewModel.combineDocuments(selectedDocs.toList(), combinedTitle, context)
+                                onBack()
+                            },
+                            enabled = !isProcessing,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .padding(end = 12.dp)
+                                .testTag("combine_top_button")
+                        ) {
+                            if (isProcessing) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            } else {
+                                Icon(Icons.Filled.Merge, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Combine (${selectedDocs.size})", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
-        },
-        bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Button(
-                    onClick = {
-                        documentsViewModel.combineDocuments(selectedDocs.toList(), combinedTitle, context)
-                        onBack()
-                    },
-                    enabled = selectedDocs.size >= 2 && combinedTitle.isNotBlank() && !isProcessing,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("combine_submit_button")
-                ) {
-                    if (isProcessing) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else {
-                        Icon(Icons.Filled.Merge, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Combine (${selectedDocs.size} files)")
-                    }
-                }
-            }
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(
-                text = "Select 2 or more PDFs to merge into a single continuous file.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Select 2 or more PDFs to merge into a single document.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            item {
+                OutlinedTextField(
+                    value = combinedTitle,
+                    onValueChange = { combinedTitle = it },
+                    label = { Text("Merged Document Title") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-            OutlinedTextField(
-                value = combinedTitle,
-                onValueChange = { combinedTitle = it },
-                label = { Text("Merged File Title") },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
+            item {
+                Text(
+                    text = "Available Documents (${selectedDocs.size} selected)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Available Documents (${selectedDocs.size} selected)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
+            if (documents.isEmpty()) {
+                item {
+                    Text(
+                        text = "No PDF documents found to combine.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                }
+            } else {
                 items(documents, key = { it.id }) { doc ->
                     val isChecked = selectedDocs.any { it.id == doc.id }
                     Card(
@@ -169,24 +169,26 @@ fun CombinePdfScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = if (isChecked) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircleOutline,
                                 contentDescription = null,
-                                tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(26.dp)
                             )
                             Spacer(modifier = Modifier.width(14.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = doc.title,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "${doc.pageCount} pages · ${formatFileSize(doc.fileSizeBytes)}",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -194,6 +196,11 @@ fun CombinePdfScreen(
                     }
                 }
             }
+
+            item {
+                Spacer(modifier = Modifier.height(40.dp))
+            }
         }
     }
 }
+

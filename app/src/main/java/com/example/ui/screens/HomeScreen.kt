@@ -159,10 +159,10 @@ fun HomeScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Hero Scanning Card (Pixel-inspired prominent container)
+            // Hero Scanning Card (Compact & Senior Friendly)
             item {
                 Card(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     ),
@@ -174,30 +174,15 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp)
+                            .padding(14.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Scan document",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Capture pages and turn them into a clear, optimized PDF.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                )
-                            }
                             Box(
                                 modifier = Modifier
-                                    .size(52.dp)
+                                    .size(42.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center
@@ -206,26 +191,40 @@ fun HomeScreen(
                                     imageVector = Icons.Filled.CameraAlt,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Scan Document",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Capture pages into a clear PDF",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
                                 onClick = onNavigateToScan,
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("Start Scanner")
+                                Text("Start Scanner", fontWeight = FontWeight.Bold)
                             }
 
                             Button(
@@ -234,7 +233,7 @@ fun HomeScreen(
                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
                                 },
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.surface
                                 ),
@@ -246,19 +245,19 @@ fun HomeScreen(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Import Images", color = MaterialTheme.colorScheme.onSurface)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Import", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
-            // Quick Actions Strip
+            // Quick Actions Strip (Compact Buttons)
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     QuickActionPill(
                         icon = Icons.Filled.Merge,
@@ -289,7 +288,7 @@ fun HomeScreen(
                 )
             }
 
-            // Recent Documents Section Header
+            // Clarity Library Section Header at Very Bottom
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -297,8 +296,8 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Recent Documents",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Clarity Library",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -311,7 +310,7 @@ fun HomeScreen(
                 }
             }
 
-            // Recent documents list or thoughtful empty state
+            // Clarity Library documents list with big thumbnails or thoughtful empty state
             if (documents.isEmpty()) {
                 item {
                     EmptyDocumentsState(onScanClick = onNavigateToScan)
@@ -370,7 +369,7 @@ fun QuickActionPill(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
-    val pillShape = RoundedCornerShape(16.dp)
+    val pillShape = RoundedCornerShape(12.dp)
     Card(
         shape = pillShape,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -384,7 +383,7 @@ fun QuickActionPill(
     ) {
         Column(
             modifier = Modifier
-                .padding(vertical = 14.dp, horizontal = 8.dp)
+                .padding(vertical = 8.dp, horizontal = 4.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -393,16 +392,16 @@ fun QuickActionPill(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }

@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.ui.res.painterResource
@@ -98,6 +101,8 @@ fun PdfExportSheet(
 
     val categories = listOf("Notes", "ID Cards", "Receipts", "Invoices", "Certificates", "Books", "General")
 
+    var showAdvanced by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -117,9 +122,9 @@ fun PdfExportSheet(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "$pageCount pages selected for compilation",
+                        text = "$pageCount pages ready to generate",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -137,108 +142,9 @@ fun PdfExportSheet(
                             .testTag("pdf_title_input")
                     )
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Page Format Selector
-                    Text("Page Format", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(PdfPageSize.entries) { size ->
-                            FilterChip(
-                                selected = selectedPageSize == size,
-                                onClick = { selectedPageSize = size },
-                                label = { Text(size.displayName) },
-                                leadingIcon = if (selectedPageSize == size) {
-                                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                                } else null
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Orientation Selector
-                    Text("Orientation", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PdfOrientation.entries.forEach { orient ->
-                            FilterChip(
-                                selected = selectedOrientation == orient,
-                                onClick = { selectedOrientation = orient },
-                                label = { Text(orient.displayName) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Compression Quality Preset
-                    Text("Compression & Quality", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        CompressionQuality.entries.forEach { quality ->
-                            FilterChip(
-                                selected = selectedQuality == quality,
-                                onClick = { selectedQuality = quality },
-                                label = { Text(quality.displayName) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Category selection
-                    Text("Category", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(categories) { cat ->
-                            FilterChip(
-                                selected = selectedCategory == cat,
-                                onClick = { selectedCategory = cat },
-                                label = { Text(cat) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Password protection toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("Password Protection", style = MaterialTheme.typography.titleSmall)
-                                Text("Require password to access", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        Switch(
-                            checked = isPasswordProtected,
-                            onCheckedChange = { isPasswordProtected = it }
-                        )
-                    }
-
-                    AnimatedVisibility(visible = isPasswordProtected) {
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Document Password") },
-                            singleLine = true,
-                            visualTransformation = PasswordVisualTransformation(),
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
+                    // Primary Create PDF Button moved directly to the TOP for senior friendliness!
                     Button(
                         onClick = {
                             onGenerate(
@@ -255,13 +161,147 @@ fun PdfExportSheet(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(54.dp)
                             .testTag("export_pdf_confirm_button")
                     ) {
                         Icon(Icons.Filled.PictureAsPdf, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Create PDF", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Create PDF Now", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Advanced settings collapsible toggle (hidden by default)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showAdvanced = !showAdvanced }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Advanced Options (Page size, Password)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = if (showAdvanced) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = if (showAdvanced) "Hide advanced options" else "Show advanced options",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    // Advanced Options Section
+                    AnimatedVisibility(visible = showAdvanced) {
+                        Column(modifier = Modifier.padding(top = 16.dp)) {
+                            // Page Format Selector
+                            Text("Page Format", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(PdfPageSize.entries) { size ->
+                                    FilterChip(
+                                        selected = selectedPageSize == size,
+                                        onClick = { selectedPageSize = size },
+                                        label = { Text(size.displayName) },
+                                        leadingIcon = if (selectedPageSize == size) {
+                                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                        } else null
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Orientation Selector
+                            Text("Orientation", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                PdfOrientation.entries.forEach { orient ->
+                                    FilterChip(
+                                        selected = selectedOrientation == orient,
+                                        onClick = { selectedOrientation = orient },
+                                        label = { Text(orient.displayName) }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Compression Quality Preset
+                            Text("Compression & Quality", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                CompressionQuality.entries.forEach { quality ->
+                                    FilterChip(
+                                        selected = selectedQuality == quality,
+                                        onClick = { selectedQuality = quality },
+                                        label = { Text(quality.displayName) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Category selection
+                            Text("Category", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(categories) { cat ->
+                                    FilterChip(
+                                        selected = selectedCategory == cat,
+                                        onClick = { selectedCategory = cat },
+                                        label = { Text(cat) }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Password protection toggle
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text("Password Protection", style = MaterialTheme.typography.titleSmall)
+                                        Text("Require password to access", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                Switch(
+                                    checked = isPasswordProtected,
+                                    onCheckedChange = { isPasswordProtected = it }
+                                )
+                            }
+
+                            AnimatedVisibility(visible = isPasswordProtected) {
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it },
+                                    label = { Text("Document Password") },
+                                    singleLine = true,
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 10.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
 
                 is GenerationUiState.Processing -> {

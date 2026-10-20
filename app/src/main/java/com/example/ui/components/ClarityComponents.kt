@@ -113,13 +113,13 @@ fun DocumentItemCard(
     var showMenu by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
 
-    val cardShape = RoundedCornerShape(20.dp)
+    val cardShape = RoundedCornerShape(24.dp)
     Card(
         shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = if (!isSelected) BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)) else null,
         modifier = modifier
             .fillMaxWidth()
@@ -134,239 +134,288 @@ fun DocumentItemCard(
             }
             .testTag("document_card_${document.id}")
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Selection Checkbox or Thumbnail
-            if (isSelectionMode) {
-                IconButton(
-                    onClick = onLongClick,
-                    modifier = Modifier.testTag("select_toggle_${document.id}")
-                ) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircleOutline,
-                        contentDescription = "Select",
-                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+            // Large First Page Thumbnail Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (document.thumbnailPath != null && File(document.thumbnailPath).exists()) {
+                    AsyncImage(
+                        model = File(document.thumbnailPath),
+                        contentDescription = "First Page Thumbnail Preview",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp)
                     )
-                }
-            } else {
-                // PDF Cover Preview
-                Box(
-                    modifier = Modifier
-                        .size(60.dp, 76.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (document.thumbnailPath != null && File(document.thumbnailPath).exists()) {
-                        AsyncImage(
-                            model = File(document.thumbnailPath),
-                            contentDescription = "Cover preview",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.PictureAsPdf,
                             contentDescription = "PDF Icon",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "PDF Document",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
+                }
 
-                    if (document.isPasswordProtected) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(4.dp)
-                                .size(20.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
-                            contentAlignment = Alignment.Center
+                // Password Protected Badge Overlay
+                if (document.isPasswordProtected) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Lock,
                                 contentDescription = "Password protected",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(12.dp)
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Protected",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+
+                // Selection Toggle Overlay
+                if (isSelectionMode) {
+                    IconButton(
+                        onClick = onLongClick,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                            .testTag("select_toggle_${document.id}")
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircleOutline,
+                            contentDescription = "Select",
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            }
+
+            // Document Details Section Below Thumbnail
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = document.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = "${document.pageCount} ${if (document.pageCount == 1) "page" else "pages"}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = formatFileSize(document.fileSizeBytes),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = formatDate(document.createdAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Action Bar for Senior-Friendly Direct Tap
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = onOpen,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("document_open_button_${document.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = "Open PDF", fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = onShareWhatsApp,
+                        modifier = Modifier.testTag("document_whatsapp_button_${document.id}")
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_whatsapp),
+                            contentDescription = "Share to WhatsApp",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onShare,
+                        modifier = Modifier.testTag("document_share_button_${document.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.testTag("document_menu_button_${document.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "Options",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Open") },
+                                leadingIcon = { Icon(Icons.Filled.OpenInNew, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onOpen()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share to WhatsApp") },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_whatsapp),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onShareWhatsApp()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onShare()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Rename") },
+                                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onRename()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Duplicate") },
+                                leadingIcon = { Icon(Icons.Filled.Difference, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onDuplicate()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Compress") },
+                                leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onCompress()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    onDelete()
+                                }
                             )
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Metadata Column
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = document.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = "${document.pageCount} ${if (document.pageCount == 1) "page" else "pages"}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = formatFileSize(document.fileSizeBytes),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = "• ${document.pageSize}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = formatDate(document.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    maxLines = 1
-                )
-            }
-
-            // Quick Actions: WhatsApp direct shortcut, System Share, and Options
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = onShareWhatsApp,
-                    modifier = Modifier.testTag("document_whatsapp_button_${document.id}")
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_whatsapp),
-                        contentDescription = "Share to WhatsApp",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = onShare,
-                    modifier = Modifier.testTag("document_share_button_${document.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Box {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier.testTag("document_menu_button_${document.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = "Options",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Open") },
-                            leadingIcon = { Icon(Icons.Filled.OpenInNew, contentDescription = null) },
-                            onClick = {
-                                showMenu = false
-                                onOpen()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Share to WhatsApp") },
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_whatsapp),
-                                    contentDescription = null,
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            },
-                            onClick = {
-                                showMenu = false
-                                onShareWhatsApp()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            leadingIcon = { Icon(Icons.Filled.Share, contentDescription = null) },
-                            onClick = {
-                                showMenu = false
-                                onShare()
-                            }
-                        )
-                    DropdownMenuItem(
-                        text = { Text("Rename") },
-                        leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onRename()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Duplicate") },
-                        leadingIcon = { Icon(Icons.Filled.Difference, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onDuplicate()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Compress") },
-                        leadingIcon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                        onClick = {
-                            showMenu = false
-                            onCompress()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                        onClick = {
-                            showMenu = false
-                            onDelete()
-                        }
-                    )
-                }
-            }
         }
     }
-}
 }
 
 @Composable
