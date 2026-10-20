@@ -1,15 +1,29 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -619,4 +633,109 @@ fun DeleteConfirmDialog(
             }
         }
     )
+}
+
+@Composable
+fun DancingGradientButton(
+    onClick: () -> Unit,
+    text: String,
+    icon: ImageVector = Icons.Filled.PictureAsPdf,
+    modifier: Modifier = Modifier,
+    isFullWidth: Boolean = true,
+    height: Dp = 52.dp,
+    testTag: String = "animated_create_pdf_button"
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "DancingPulse")
+
+    // Rhythmic pulse scale animation ("Dancing Pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.97f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(850, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseScale"
+    )
+
+    // Smooth color gradient shift animation
+    val gradientShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "GradientShift"
+    )
+
+    val gradientColors = listOf(
+        Color(0xFF2563EB), // Vibrant Royal Blue
+        Color(0xFF7C3AED), // Electric Violet / Purple
+        Color(0xFFE11D48), // Bright Rose / Pink
+        Color(0xFF0284C7), // Deep Sky Blue
+        Color(0xFF10B981), // Emerald Green
+        Color(0xFF2563EB)  // Back to Royal Blue
+    )
+
+    val animatedBrush = Brush.linearGradient(
+        colors = gradientColors,
+        start = Offset(gradientShift, 0f),
+        end = Offset(gradientShift + 700f, 700f)
+    )
+
+    Box(
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            }
+    ) {
+        // Outer glowing aura / pulse ring
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .scale(1.08f)
+                .clip(RoundedCornerShape(18.dp))
+                .background(animatedBrush)
+                .graphicsLayer { alpha = 0.35f }
+        )
+
+        // Main Animated Gradient Button
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent,
+                contentColor = Color.White
+            ),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+            modifier = Modifier
+                .then(if (isFullWidth) Modifier.fillMaxWidth() else Modifier)
+                .height(height)
+                .clip(RoundedCornerShape(16.dp))
+                .background(animatedBrush)
+                .testTag(testTag)
+        ) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = text,
+                    color = Color.White,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
 }

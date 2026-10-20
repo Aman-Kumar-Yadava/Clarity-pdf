@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.net.Uri
+import com.example.ui.components.DancingGradientButton
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -194,28 +195,16 @@ fun PageEditorScreen(
                     IconButton(onClick = { viewModel.resetEdits(context) }) {
                         Icon(Icons.Filled.RestartAlt, contentDescription = "Reset edits")
                     }
+
                     if (pages.isNotEmpty()) {
-                        Button(
+                        DancingGradientButton(
                             onClick = { showExportSheet = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier
-                                .padding(end = 6.dp)
-                                .testTag("export_pdf_top_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.PictureAsPdf,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Create PDF",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
+                            text = "Create PDF",
+                            isFullWidth = false,
+                            height = 42.dp,
+                            modifier = Modifier.padding(end = 6.dp),
+                            testTag = "export_pdf_top_button"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)

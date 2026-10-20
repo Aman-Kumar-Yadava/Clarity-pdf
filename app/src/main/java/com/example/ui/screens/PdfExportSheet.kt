@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.components.DancingGradientButton
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -144,8 +146,8 @@ fun PdfExportSheet(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Primary Create PDF Button moved directly to the TOP for senior friendliness!
-                    Button(
+                    // Primary Create PDF Button moved directly to the TOP with dancing pulse & gradient shift for senior friendliness!
+                    DancingGradientButton(
                         onClick = {
                             onGenerate(
                                 title,
@@ -157,17 +159,11 @@ fun PdfExportSheet(
                                 password
                             )
                         },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp)
-                            .testTag("export_pdf_confirm_button")
-                    ) {
-                        Icon(Icons.Filled.PictureAsPdf, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Create PDF Now", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
+                        text = "Create PDF Now",
+                        isFullWidth = true,
+                        height = 54.dp,
+                        testTag = "export_pdf_confirm_button"
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
