@@ -144,8 +144,10 @@ fun PdfViewScreen(
         }
     }
 
-    // Zoom state
+    // Zoom and Pan states
     var scale by rememberSaveable { mutableFloatStateOf(1f) }
+    var offsetX by rememberSaveable { mutableFloatStateOf(0f) }
+    var offsetY by rememberSaveable { mutableFloatStateOf(0f) }
 
     LaunchedEffect(document.filePath) {
         isLoading = true
@@ -185,17 +187,41 @@ fun PdfViewScreen(
                 )
             }
         } else {
-            // Vertical Continuous Scroll View
+            // Vertical Continuous Scroll View with Pinch-to-Zoom & Pan
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer(scaleX = scale, scaleY = scale)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY
+                    )
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val newScale = (scale * zoom).coerceIn(0.8f, 4.0f)
+                            if (newScale > 1f) {
+                                offsetX += pan.x
+                                offsetY += pan.y
+                            } else {
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                            scale = newScale
+                        }
+                    }
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { showControls = !showControls },
                             onDoubleTap = {
-                                scale = if (scale > 1f) 1f else 1.75f
+                                if (scale > 1.2f) {
+                                    scale = 1f
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                } else {
+                                    scale = 2.0f
+                                }
                             }
                         )
                     },
@@ -219,7 +245,13 @@ fun PdfViewScreen(
                                 detectTapGestures(
                                     onTap = { showControls = !showControls },
                                     onDoubleTap = {
-                                        scale = if (scale > 1f) 1f else 1.75f
+                                        if (scale > 1.2f) {
+                                            scale = 1f
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        } else {
+                                            scale = 2.0f
+                                        }
                                     }
                                 )
                             }
@@ -371,7 +403,14 @@ fun PdfViewScreen(
                     // Zoom Controls
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
-                            onClick = { scale = (scale - 0.25f).coerceAtLeast(0.75f) },
+                            onClick = {
+                                val nextScale = (scale - 0.25f).coerceAtLeast(0.75f)
+                                if (nextScale <= 1f) {
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                }
+                                scale = nextScale
+                            },
                             enabled = scale > 0.75f
                         ) {
                             Icon(Icons.Filled.ZoomOut, contentDescription = "Zoom out")
@@ -380,13 +419,23 @@ fun PdfViewScreen(
                         Text(
                             text = "${(scale * 100).toInt()}%",
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 6.dp)
+                            fontWeight = FontWeight.Bold,
+                            color = if (scale != 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    scale = 1f
+                                    offsetX = 0f
+                                    offsetY = 0f
+                                }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
 
                         IconButton(
-                            onClick = { scale = (scale + 0.25f).coerceAtMost(2.5f) },
-                            enabled = scale < 2.5f
+                            onClick = {
+                                scale = (scale + 0.25f).coerceAtMost(4.0f)
+                            },
+                            enabled = scale < 4.0f
                         ) {
                             Icon(Icons.Filled.ZoomIn, contentDescription = "Zoom in")
                         }

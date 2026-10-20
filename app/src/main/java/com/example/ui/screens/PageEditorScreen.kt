@@ -5,17 +5,22 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,11 +41,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.RotateLeft
@@ -69,6 +77,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +87,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -183,6 +193,29 @@ fun PageEditorScreen(
                     }
                     IconButton(onClick = { viewModel.resetEdits(context) }) {
                         Icon(Icons.Filled.RestartAlt, contentDescription = "Reset edits")
+                    }
+                    if (pages.isNotEmpty()) {
+                        Button(
+                            onClick = { showExportSheet = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .testTag("export_pdf_top_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PictureAsPdf,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Create PDF",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -320,25 +353,6 @@ fun PageEditorScreen(
                     }
                 }
             }
-        },
-        floatingActionButton = {
-            if (pages.isNotEmpty()) {
-                FloatingActionButton(
-                    onClick = { showExportSheet = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.testTag("export_pdf_fab")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.PictureAsPdf, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Export PDF", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
         }
     ) { padding ->
         if (pages.isEmpty()) {
@@ -367,6 +381,17 @@ fun PageEditorScreen(
                 val isLandscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 val cardHeight = if (isLandscape) 200.dp else 320.dp
 
+                // Image Zoom & Pan States
+                var scale by remember { mutableFloatStateOf(1f) }
+                var offsetX by remember { mutableFloatStateOf(0f) }
+                var offsetY by remember { mutableFloatStateOf(0f) }
+
+                LaunchedEffect(selectedIndex) {
+                    scale = 1f
+                    offsetX = 0f
+                    offsetY = 0f
+                }
+
                 var dragAccumulator by remember { mutableFloatStateOf(0f) }
 
                 val previewCardShape = RoundedCornerShape(20.dp)
@@ -384,41 +409,106 @@ fun PageEditorScreen(
                             if (isDark) DarkCardGradient else LightCardGradient,
                             previewCardShape
                         )
-                        .pointerInput(selectedIndex, pages.size) {
-                            detectHorizontalDragGestures(
-                                onDragEnd = {
-                                    if (dragAccumulator < -60f && selectedIndex < pages.size - 1) {
-                                        viewModel.selectPage(selectedIndex + 1)
-                                    } else if (dragAccumulator > 60f && selectedIndex > 0) {
-                                        viewModel.selectPage(selectedIndex - 1)
-                                    }
-                                    dragAccumulator = 0f
-                                },
-                                onDragCancel = { dragAccumulator = 0f },
-                                onHorizontalDrag = { _, dragAmount ->
-                                    dragAccumulator += dragAmount
-                                }
-                            )
-                        }
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                            .pointerInput(selectedIndex, scale) {
+                                if (scale <= 1.05f) {
+                                    detectHorizontalDragGestures(
+                                        onDragEnd = {
+                                            if (dragAccumulator < -60f && selectedIndex < pages.size - 1) {
+                                                viewModel.selectPage(selectedIndex + 1)
+                                            } else if (dragAccumulator > 60f && selectedIndex > 0) {
+                                                viewModel.selectPage(selectedIndex - 1)
+                                            }
+                                            dragAccumulator = 0f
+                                        },
+                                        onDragCancel = { dragAccumulator = 0f },
+                                        onHorizontalDrag = { _, dragAmount ->
+                                            dragAccumulator += dragAmount
+                                        }
+                                    )
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    val newScale = (scale * zoom).coerceIn(1f, 5f)
+                                    if (newScale > 1f) {
+                                        offsetX += pan.x
+                                        offsetY += pan.y
+                                    } else {
+                                        offsetX = 0f
+                                        offsetY = 0f
+                                    }
+                                    scale = newScale
+                                }
+                            }
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onDoubleTap = {
+                                        if (scale > 1.2f) {
+                                            scale = 1f
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        } else {
+                                            scale = 2.5f
+                                        }
+                                    }
+                                )
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         if (currentPage != null) {
                             val displayPath = currentPage.processedImagePath ?: currentPage.originalImagePath
                             AsyncImage(
                                 model = File(displayPath),
-                                contentDescription = "Page Preview",
+                                contentDescription = "Page Preview (Double-tap or pinch to zoom)",
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .graphicsLayer(
+                                        scaleX = scale,
+                                        scaleY = scale,
+                                        translationX = offsetX,
+                                        translationY = offsetY
+                                    )
                                     .padding(8.dp)
                             )
                         }
 
+                        // Reset zoom indicator button
+                        if (scale > 1.05f) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(12.dp)
+                                    .clickable {
+                                        scale = 1f
+                                        offsetX = 0f
+                                        offsetY = 0f
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = String.format(java.util.Locale.US, "Zoom %.1fx (Tap to reset)", scale),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+
                         // Arrow Navigation: Left / Previous Page
-                        if (selectedIndex > 0) {
+                        if (selectedIndex > 0 && scale <= 1.05f) {
                             IconButton(
                                 onClick = { viewModel.selectPage(selectedIndex - 1) },
                                 modifier = Modifier
@@ -439,7 +529,7 @@ fun PageEditorScreen(
                         }
 
                         // Arrow Navigation: Right / Next Page
-                        if (selectedIndex < pages.size - 1) {
+                        if (selectedIndex < pages.size - 1 && scale <= 1.05f) {
                             IconButton(
                                 onClick = { viewModel.selectPage(selectedIndex + 1) },
                                 modifier = Modifier
@@ -482,8 +572,9 @@ fun PageEditorScreen(
                     }
                 }
 
-                // Enhancement Filters Selector Row
-                val filterCardShape = RoundedCornerShape(18.dp)
+                // Collapsible Enhancement Filters Card (Default Collapsed to save space & reduce clutter)
+                var isFilterExpanded by rememberSaveable { mutableStateOf(false) }
+                val filterCardShape = RoundedCornerShape(16.dp)
                 Card(
                     shape = filterCardShape,
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -497,56 +588,96 @@ fun PageEditorScreen(
                             if (isDark) DarkGradientBlack else LightGradientWhite,
                             filterCardShape
                         )
-                        .padding(14.dp)
                 ) {
-                    Column {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isFilterExpanded = !isFilterExpanded },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Enhancement Filter",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "All pages",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                Icon(
+                                    imageVector = Icons.Filled.AutoFixHigh,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Switch(
-                                    checked = applyFilterToAll,
-                                    onCheckedChange = { applyFilterToAll = it }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Filter: ${currentPage?.enhancementMode?.displayName ?: "Original"}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                ) {
+                                    Text(
+                                        text = if (isFilterExpanded) "Collapse" else "Change",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = if (isFilterExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = if (isFilterExpanded) "Collapse filters" else "Expand filters",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Expanded Filter Options Palette
+                        AnimatedVisibility(visible = isFilterExpanded) {
+                            Column(modifier = Modifier.padding(top = 10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Apply to all pages",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Switch(
+                                        checked = applyFilterToAll,
+                                        onCheckedChange = { applyFilterToAll = it }
+                                    )
+                                }
 
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            itemsIndexed(EnhancementMode.entries) { _, mode ->
-                                val isSelected = currentPage?.enhancementMode == mode
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        viewModel.setEnhancementMode(context, mode, applyFilterToAll)
-                                    },
-                                    label = { Text(mode.displayName) },
-                                    leadingIcon = if (isSelected) {
-                                        { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                                    } else null
-                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    itemsIndexed(EnhancementMode.entries) { _, mode ->
+                                        val isSelected = currentPage?.enhancementMode == mode
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = {
+                                                viewModel.setEnhancementMode(context, mode, applyFilterToAll)
+                                            },
+                                            label = { Text(mode.displayName) },
+                                            leadingIcon = if (isSelected) {
+                                                { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                            } else null
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Page Actions Toolbar (Fixed Arrow Navigation & Quick Actions)
+                // Page Actions Toolbar (Delete moved to the LEFT / early position for easy access)
                 val toolbarShape = RoundedCornerShape(18.dp)
                 Surface(
                     shape = toolbarShape,
@@ -571,7 +702,17 @@ fun PageEditorScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Previous page navigation
+                        // 1. Delete page button (MOVED TO THE LEFT / START for instant accessibility)
+                        IconButton(
+                            onClick = {
+                                currentPage?.let { viewModel.removePage(it.id) }
+                            },
+                            modifier = Modifier.testTag("action_delete_page")
+                        ) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete page", tint = MaterialTheme.colorScheme.error)
+                        }
+
+                        // 2. Previous page navigation
                         IconButton(
                             onClick = {
                                 if (selectedIndex > 0) viewModel.selectPage(selectedIndex - 1)
@@ -582,7 +723,7 @@ fun PageEditorScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous page")
                         }
 
-                        // Next page navigation
+                        // 3. Next page navigation
                         IconButton(
                             onClick = {
                                 if (selectedIndex < pages.size - 1) viewModel.selectPage(selectedIndex + 1)
@@ -593,23 +734,7 @@ fun PageEditorScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next page")
                         }
 
-                        // Rotate CCW
-                        IconButton(
-                            onClick = { viewModel.rotateCurrentPage(context, clockwise = false) },
-                            modifier = Modifier.testTag("action_rotate_ccw")
-                        ) {
-                            Icon(Icons.Filled.RotateLeft, contentDescription = "Rotate CCW")
-                        }
-
-                        // Rotate CW
-                        IconButton(
-                            onClick = { viewModel.rotateCurrentPage(context, clockwise = true) },
-                            modifier = Modifier.testTag("action_rotate_cw")
-                        ) {
-                            Icon(Icons.Filled.RotateRight, contentDescription = "Rotate CW")
-                        }
-
-                        // Crop (Live Preview Dialog)
+                        // 4. Crop (Live Preview Dialog)
                         IconButton(
                             onClick = { showCropDialog = true },
                             modifier = Modifier.testTag("action_crop_page")
@@ -617,7 +742,23 @@ fun PageEditorScreen(
                             Icon(Icons.Filled.Crop, contentDescription = "Crop page")
                         }
 
-                        // Fine tune (Live Preview Sheet)
+                        // 5. Rotate CCW
+                        IconButton(
+                            onClick = { viewModel.rotateCurrentPage(context, clockwise = false) },
+                            modifier = Modifier.testTag("action_rotate_ccw")
+                        ) {
+                            Icon(Icons.Filled.RotateLeft, contentDescription = "Rotate CCW")
+                        }
+
+                        // 6. Rotate CW
+                        IconButton(
+                            onClick = { viewModel.rotateCurrentPage(context, clockwise = true) },
+                            modifier = Modifier.testTag("action_rotate_cw")
+                        ) {
+                            Icon(Icons.Filled.RotateRight, contentDescription = "Rotate CW")
+                        }
+
+                        // 7. Fine tune (Live Preview Sheet)
                         IconButton(
                             onClick = { showTuneSheet = true },
                             modifier = Modifier.testTag("action_tune_lighting")
@@ -625,7 +766,7 @@ fun PageEditorScreen(
                             Icon(Icons.Filled.Tune, contentDescription = "Fine-tune lighting")
                         }
 
-                        // Reorder / Sort pages
+                        // 8. Reorder / Sort pages
                         IconButton(
                             onClick = { showSortSheet = true },
                             modifier = Modifier.testTag("action_sort_pages")
@@ -633,7 +774,7 @@ fun PageEditorScreen(
                             Icon(Icons.Filled.SwapHoriz, contentDescription = "Sort pages")
                         }
 
-                        // Duplicate page
+                        // 9. Duplicate page
                         IconButton(
                             onClick = {
                                 currentPage?.let { viewModel.duplicatePage(it.id) }
@@ -642,20 +783,10 @@ fun PageEditorScreen(
                         ) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = "Duplicate page")
                         }
-
-                        // Delete page
-                        IconButton(
-                            onClick = {
-                                currentPage?.let { viewModel.removePage(it.id) }
-                            },
-                            modifier = Modifier.testTag("action_delete_page")
-                        ) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete page", tint = MaterialTheme.colorScheme.error)
-                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(80.dp)) // padding for FAB
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
