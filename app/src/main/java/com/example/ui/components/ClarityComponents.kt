@@ -127,7 +127,7 @@ fun DocumentItemCard(
     var showMenu by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
 
-    val cardShape = RoundedCornerShape(24.dp)
+    val cardShape = RoundedCornerShape(20.dp)
     Card(
         shape = cardShape,
         colors = CardDefaults.cardColors(
@@ -148,43 +148,49 @@ fun DocumentItemCard(
             }
             .testTag("document_card_${document.id}")
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Large First Page Thumbnail Header
+            // LEFT SIDE: Vertical A4 Ratio PDF Thumbnail Container (Zero Wasted Space)
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)),
+                    .width(105.dp)
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                    .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 if (document.thumbnailPath != null && File(document.thumbnailPath).exists()) {
                     AsyncImage(
                         model = File(document.thumbnailPath),
                         contentDescription = "First Page Thumbnail Preview",
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(8.dp)
+                            .clip(RoundedCornerShape(14.dp))
                     )
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.PictureAsPdf,
                             contentDescription = "PDF Icon",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(42.dp)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "PDF Document",
+                            text = "PDF",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -192,30 +198,20 @@ fun DocumentItemCard(
                 // Password Protected Badge Overlay
                 if (document.isPasswordProtected) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.errorContainer,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(12.dp)
+                            .padding(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Lock,
-                                contentDescription = "Password protected",
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Protected",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = "Password protected",
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .padding(2.dp)
+                        )
                     }
                 }
 
@@ -225,135 +221,58 @@ fun DocumentItemCard(
                         onClick = onLongClick,
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(8.dp)
+                            .padding(4.dp)
                             .testTag("select_toggle_${document.id}")
                     ) {
                         Icon(
                             imageVector = if (isSelected) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircleOutline,
                             contentDescription = "Select",
                             tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
             }
 
-            // Document Details Section Below Thumbnail
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // RIGHT SIDE: PDF Details & Action Buttons (Utilizing space next to A4 thumbnail)
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+                    .weight(1f)
+                    .height(140.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = document.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
+                // Top Row: Document Title & Menu Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = "${document.pageCount} ${if (document.pageCount == 1) "page" else "pages"}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = formatFileSize(document.fileSizeBytes),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
                     Text(
-                        text = formatDate(document.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        maxLines = 1
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Action Bar for Senior-Friendly Direct Tap
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(
-                        onClick = onOpen,
-                        shape = RoundedCornerShape(12.dp),
+                        text = document.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("document_open_button_${document.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Open PDF", fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = onShareWhatsApp,
-                        modifier = Modifier.testTag("document_whatsapp_button_${document.id}")
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_whatsapp),
-                            contentDescription = "Share to WhatsApp",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onShare,
-                        modifier = Modifier.testTag("document_share_button_${document.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Share,
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                            .padding(end = 4.dp)
+                    )
 
                     Box {
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.testTag("document_menu_button_${document.id}")
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("document_menu_button_${document.id}")
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.MoreVert,
                                 contentDescription = "Options",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
@@ -423,6 +342,113 @@ fun DocumentItemCard(
                                     showMenu = false
                                     onDelete()
                                 }
+                            )
+                        }
+                    }
+                }
+
+                // Middle Row: Metadata Badges (Pages, Size, Date)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = "${document.pageCount} ${if (document.pageCount == 1) "pg" else "pgs"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = formatFileSize(document.fileSizeBytes),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = formatDate(document.createdAt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1
+                    )
+                }
+
+                // Bottom Action Bar: Prominent Senior-Friendly Open Button + WhatsApp + Share
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Button(
+                        onClick = onOpen,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp)
+                            .testTag("document_open_button_${document.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Open PDF",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF25D366).copy(alpha = 0.15f),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { onShareWhatsApp() }
+                            .testTag("document_whatsapp_button_${document.id}")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_whatsapp),
+                                contentDescription = "Share to WhatsApp",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable { onShare() }
+                            .testTag("document_share_button_${document.id}")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "Share",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }

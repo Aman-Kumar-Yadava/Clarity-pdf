@@ -1,5 +1,6 @@
 package com.example.viewmodel
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -233,7 +234,7 @@ class DocumentsViewModel(
     fun shareDocument(document: DocumentEntity, context: Context) {
         val file = File(document.filePath)
         if (!file.exists()) {
-            Toast.makeText(context, "File does not exist on device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "File not found: ${document.title}", Toast.LENGTH_SHORT).show()
             return
         }
         try {
@@ -242,14 +243,22 @@ class DocumentsViewModel(
                 "${context.packageName}.fileprovider",
                 file
             )
+            val clipData = ClipData.newRawUri(document.title, uri)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_SUBJECT, document.title)
+                setClipData(clipData)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val chooserIntent = Intent.createChooser(intent, "Share ${document.title}").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "Share ${document.title}"))
+            context.startActivity(chooserIntent)
         } catch (e: Exception) {
+            e.printStackTrace()
             Toast.makeText(context, "Unable to share: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
@@ -257,7 +266,7 @@ class DocumentsViewModel(
     fun shareDocumentToWhatsApp(document: DocumentEntity, context: Context) {
         val file = File(document.filePath)
         if (!file.exists()) {
-            Toast.makeText(context, "File does not exist on device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "File not found: ${document.title}", Toast.LENGTH_SHORT).show()
             return
         }
         try {
@@ -266,14 +275,19 @@ class DocumentsViewModel(
                 "${context.packageName}.fileprovider",
                 file
             )
-            val intent = Intent(Intent.ACTION_SEND).apply {
+            val clipData = ClipData.newRawUri(document.title, uri)
+            
+            // Try standard WhatsApp
+            val whatsappIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_SUBJECT, document.title)
+                setClipData(clipData)
                 setPackage("com.whatsapp")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(intent)
+            context.startActivity(whatsappIntent)
         } catch (_: Exception) {
             try {
                 val uri = FileProvider.getUriForFile(
@@ -281,16 +295,20 @@ class DocumentsViewModel(
                     "${context.packageName}.fileprovider",
                     file
                 )
-                val intent = Intent(Intent.ACTION_SEND).apply {
+                val clipData = ClipData.newRawUri(document.title, uri)
+                // Try WhatsApp Business
+                val w4bIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/pdf"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     putExtra(Intent.EXTRA_SUBJECT, document.title)
+                    setClipData(clipData)
                     setPackage("com.whatsapp.w4b")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                context.startActivity(intent)
+                context.startActivity(w4bIntent)
             } catch (_: Exception) {
-                Toast.makeText(context, "WhatsApp not installed. Opening sharesheet...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "WhatsApp not installed. Opening share menu...", Toast.LENGTH_SHORT).show()
                 shareDocument(document, context)
             }
         }
@@ -299,7 +317,7 @@ class DocumentsViewModel(
     fun openDocumentExternally(document: DocumentEntity, context: Context) {
         val file = File(document.filePath)
         if (!file.exists()) {
-            Toast.makeText(context, "File does not exist", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "File not found: ${document.title}", Toast.LENGTH_SHORT).show()
             return
         }
         try {
@@ -308,12 +326,20 @@ class DocumentsViewModel(
                 "${context.packageName}.fileprovider",
                 file
             )
+            val clipData = ClipData.newRawUri(document.title, uri)
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/pdf")
+                setClipData(clipData)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val chooserIntent = Intent.createChooser(intent, "Open ${document.title} with").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "Open with"))
-        } catch (_: Exception) {
+            context.startActivity(chooserIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
             Toast.makeText(context, "No PDF viewer app found on device", Toast.LENGTH_SHORT).show()
         }
     }

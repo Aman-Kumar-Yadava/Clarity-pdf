@@ -280,15 +280,7 @@ fun HomeScreen(
                 }
             }
 
-            // Storage Summary
-            item {
-                StorageOverviewCard(
-                    docCount = storageStats.first,
-                    totalBytes = storageStats.second
-                )
-            }
-
-            // Clarity Library Section Header at Very Bottom
+            // Clarity Library Section Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -310,7 +302,7 @@ fun HomeScreen(
                 }
             }
 
-            // Clarity Library documents list with big thumbnails or thoughtful empty state
+            // Clarity Library documents list with thumbnails or thoughtful empty state
             if (documents.isEmpty()) {
                 item {
                     EmptyDocumentsState(onScanClick = onNavigateToScan)
@@ -329,6 +321,14 @@ fun HomeScreen(
                         onDelete = { docToDelete = doc }
                     )
                 }
+            }
+
+            // Storage Representation Card at Very Bottom
+            item {
+                StorageOverviewCard(
+                    docCount = storageStats.first,
+                    totalBytes = storageStats.second
+                )
             }
 
             item {
