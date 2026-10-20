@@ -254,31 +254,17 @@ fun CameraScannerScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Live Document Viewfinder Frame Overlay (Google Pixel aesthetic viewfinder)
+        // Clean, unobtrusive Raw Camera Viewfinder Corner Guides
         Canvas(modifier = Modifier.fillMaxSize()) {
             val marginH = size.width * 0.08f
             val marginV = size.height * 0.16f
             val rectW = size.width - (marginH * 2)
             val rectH = size.height - (marginV * 2)
 
-            // Dim outer area
-            drawRect(
-                color = Color.Black.copy(alpha = 0.35f),
-                size = size
-            )
-
-            // Clear viewfinder window
-            drawRoundRect(
-                color = Color.Transparent,
-                topLeft = Offset(marginH, marginV),
-                size = Size(rectW, rectH),
-                cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx())
-            )
-
-            // Viewfinder Outline & Corner Brackets
-            val cornerLen = 36.dp.toPx()
-            val strokeW = 4.dp.toPx()
-            val bracketColor = Color(0xFF38BDF8)
+            // Clean Corner Guides (No dark layer, 100% transparent raw camera)
+            val cornerLen = 32.dp.toPx()
+            val strokeW = 3.dp.toPx()
+            val bracketColor = Color(0xFF38BDF8) // Crisp sky blue corner brackets
 
             // Top-left corner
             drawLine(bracketColor, Offset(marginH, marginV), Offset(marginH + cornerLen, marginV), strokeW)
@@ -333,7 +319,7 @@ fun CameraScannerScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Document Viewfinder",
+                        text = "Raw Camera Feed",
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White
                     )
